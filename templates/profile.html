@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} • Profile{% endblock %}
+
+{% block content %}
+    <section class="profile-page" data-profile-user-id="{{ user.id }}" data-viewer-id="{{ viewer.id }}">
+        <header class="profile-header">
+            <div class="profile-avatar-wrap">
+                {% if user.profile_picture %}
+                    <img class="profile-avatar"
+                         src="{{ url_for('uploaded_profile_picture', filename=user.profile_picture) }}"
+                         alt="{{ user.username }}'s profile picture"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                {% else %}
+                    <img class="profile-avatar"
+                         src="{{ url_for('static', filename='images/default-avatar.svg') }}"
+                         alt="Default profile picture">
+                {% endif %}
+            </div>
+            <div class="profile-summary">
+                <div class="profile-topline">
+                    <h1>{{ user.username }}</h1>
+                    {% if is_own_profile %}
+                        <a class="profile-button" href="{{ url_for('edit_profile') }}">Edit profile</a>
+                    {% else %}
+                        <button class="follow-button profile-follow-button{% if is_following %} following{% endif %}"
+                                type="button"
+                                data-user-id="{{ user.id }}"
+                                data-follow-url="{{ url_for('follow_user', user_id=user.id) }}"
+                                data-unfollow-url="{{ url_for('unfollow_user', user_id=user.id) }}"
+                                data-csrf-token="{{ csrf_token() }}"
+                                aria-pressed="{{ 'true' if is_following else 'false' }}">
+                            {{ "Following" if is_following else "Follow" }}
+                        </button>
+                        <form action="{{ url_for('start_conversation_with_user', username=user.username) }}" method="POST" class="profile-message-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="profile-button profile-message-btn">Message</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <div class="profile-stats" aria-label="Profile statistics">
+                    <span><strong>{{ post_count }}</strong> posts</span>
+                    <a href="{{ url_for('user_followers', username=user.username) }}"><strong data-followers-count>{{ followers_count }}</strong> followers</a>
+                    <a href="{{ url_for('user_following', username=user.username) }}"><strong data-following-count>{{ following_count }}</strong> following</a>
+                </div>
+                <div class="profile-bio">
+                    <strong>{{ user.display_name or user.username }}</strong>
+                    {% if user.bio %}
+                        <p>{{ user.bio }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <section class="profile-information" aria-labelledby="profile-info-title">
+            <h2 id="profile-info-title">Profile information</h2>
+            <dl>
+                <div><dt>Username</dt><dd>{{ user.username }}</dd></div>
+                <div><dt>Display name</dt><dd>{{ user.display_name or "—" }}</dd></div>
+                <div><dt>Bio</dt><dd>{{ user.bio or "—" }}</dd></div>
+                {% if is_own_profile %}<div><dt>Email</dt><dd>{{ user.email }}</dd></div>{% endif %}
+            </dl>
+        </section>
+
+        <nav class="profile-tabs" aria-label="Profile tabs">
+            <a href="{{ url_for('profile', username=user.username) }}" class="profile-tab{% if active_tab == 'posts' %} active{% endif %}">
+                <span class="tab-icon">▦</span> POSTS
+            </a>
+            <a href="{{ url_for('profile', username=user.username, tab='reels') }}" class="profile-tab{% if active_tab == 'reels' %} active{% endif %}">
+                <span class="tab-icon">▶</span> REELS
+            </a>
+            {% if is_own_profile %}
+                <a href="{{ url_for('saved_posts') }}" class="profile-tab">
+                    <span class="tab-icon">▣</span> SAVED
+                </a>
+            {% endif %}
+        </nav>
+
+        <section class="profile-posts" aria-labelledby="posts-title">
+            {% if active_tab == 'reels' %}
+                <h2 id="posts-title" class="sr-only">Reels</h2>
+                {% if profile_reels %}
+                    <div class="profile-reel-grid">
+                        {% for reel in profile_reels %}
+                            <article class="profile-reel-tile">
+                                <a href="{{ url_for('reels_feed') }}#reel-{{ reel.id }}" aria-label="Play Reel by {{ user.username }}">
+                                    <video muted playsinline preload="metadata">
+                                        <source src="{{ url_for('uploaded_reel_video', filename=reel.video_filename) }}" type="{{ 'video/webm' if reel.video_filename.endswith('.webm') else 'video/mp4' }}">
+                                    </video>
+                                    <span class="profile-reel-play" aria-hidden="true">▶</span>
+                                </a>
+                                {% if is_own_profile %}
+                                    <form method="POST" action="{{ url_for('delete_reel', reel_id=reel.id) }}" onsubmit="return confirm('Delete this Reel?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" aria-label="Delete Reel">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="profile-empty-state">
+                        <span class="empty-post-icon" aria-hidden="true">▶</span>
+                        <h3>No Reels yet</h3>
+                        {% if is_own_profile %}<a class="profile-button" href="{{ url_for('upload_reel') }}">Upload a Reel</a>{% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+            <h2 id="posts-title" class="sr-only">Posts</h2>
+            {% if posts %}<div class="profile-post-grid">
+                {% for post in posts %}<div class="profile-post-tile">
+                    <a href="{{ url_for('post_detail', post_id=post.id) }}" class="profile-post-link">
+                        <img src="{{ url_for('uploaded_post_image', filename=post.image_filename) }}" alt="{{ post.caption or 'Post' }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-post.svg') }}';">
+                    </a>
+                    <div class="profile-post-like-row">
+                        <button type="button" class="like-button{% if post.id in liked_post_ids %} liked{% endif %}" data-like-url="{{ url_for('toggle_like', post_id=post.id) }}" data-unlike-url="{{ url_for('unlike_post', post_id=post.id) }}" data-csrf-token="{{ csrf_token() }}" aria-label="{% if post.id in liked_post_ids %}Unlike{% else %}Like{% endif %} post" aria-pressed="{{ 'true' if post.id in liked_post_ids else 'false' }}">{{ '♥' if post.id in liked_post_ids else '♡' }}</button>
+                        <span class="likes-count" data-post-url="{{ url_for('toggle_like', post_id=post.id) }}"><strong>{{ like_counts.get(post.id, 0) }} {{ 'like' if like_counts.get(post.id, 0) == 1 else 'likes' }}</strong></span>
+                        <button type="button"
+                                class="save-button{% if saved_post_ids is defined and post.id in saved_post_ids %} saved{% endif %}"
+                                data-save-url="{{ url_for('toggle_save_post', post_id=post.id) }}"
+                                data-post-id="{{ post.id }}"
+                                data-csrf-token="{{ csrf_token() }}"
+                                aria-label="{% if saved_post_ids is defined and post.id in saved_post_ids %}Remove saved post{% else %}Save post{% endif %}"
+                                aria-pressed="{{ 'true' if (saved_post_ids is defined and post.id in saved_post_ids) else 'false' }}">
+                            {{ '▣' if (saved_post_ids is defined and post.id in saved_post_ids) else '♧' }}
+                        </button>
+                    </div>
+                    <p class="profile-comment-count">{{ comment_counts.get(post.id, 0) }} {{ 'comment' if comment_counts.get(post.id, 0) == 1 else 'comments' }}</p>
+                    {% if is_own_profile %}<form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" aria-label="Delete post">Delete</button></form>{% endif %}
+                </div>{% endfor %}
+            </div>{% else %}<div class="profile-empty-state">
+                <span class="empty-post-icon" aria-hidden="true">▧</span>
+                <h3>No posts yet</h3>
+                <p>Your posts will appear here when you share them.</p>
+                {% if is_own_profile %}
+                    <a class="profile-button empty-create-button" href="{{ url_for('create_post') }}">Create post</a>
+                {% endif %}
+            </div>{% endif %}
+            {% endif %}
+        </section>
+    </section>
+{% endblock %}

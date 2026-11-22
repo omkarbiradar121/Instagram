@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Instagram{% endblock %}</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="dashboard{% if request.endpoint in ['explore', 'saved_posts', 'messages', 'conversation_detail', 'profile', 'user_followers', 'user_following', 'reels_feed', 'upload_reel'] %} dashboard-wide{% endif %}{% if request.endpoint == 'profile' %} profile-dashboard{% endif %}">
+        <aside class="sidebar">
+            <h1 class="logo">Instagram</h1>
+            <nav class="sidebar-nav navigation">
+                <a href="{{ url_for('dashboard') }}"
+                   class="nav-item{% if request.endpoint == 'dashboard' %} active{% endif %}">
+                    <span class="nav-icon">⌂</span><span>Home</span>
+                </a>
+                <a href="{{ url_for('search') }}"
+                   class="nav-item{% if request.endpoint == 'search' %} active{% endif %}">
+                    <span class="nav-icon">⌕</span><span>Search</span>
+                </a>
+                <a href="{{ url_for('explore') }}"
+                   class="nav-item{% if request.endpoint == 'explore' %} active{% endif %}">
+                    <span class="nav-icon">◇</span><span>Explore</span>
+                </a>
+                <a href="{{ url_for('reels_feed') }}"
+                   class="nav-item{% if request.endpoint in ['reels_feed', 'upload_reel'] %} active{% endif %}">
+                    <span class="nav-icon">▶</span><span>Reels</span>
+                </a>
+                <a href="{{ url_for('messages') }}"
+                   class="nav-item{% if request.endpoint in ['messages', 'conversation_detail'] %} active{% endif %}">
+                    <span class="nav-icon">✉</span><span>Messages</span>
+                    {% if unread_messages_count and unread_messages_count > 0 %}
+                        <span class="nav-badge">{{ unread_messages_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('notifications') }}"
+                   class="nav-item{% if request.endpoint == 'notifications' %} active{% endif %}">
+                    <span class="nav-icon">♡</span><span>Notifications</span>
+                    {% if unread_notifications_count and unread_notifications_count > 0 %}
+                        <span class="nav-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('create_post') }}"
+                   class="nav-item{% if request.endpoint == 'create_post' %} active{% endif %}">
+                    <span class="nav-icon">+</span><span>Create</span>
+                </a>
+                <a href="{{ url_for('saved_posts') }}"
+                   class="nav-item{% if request.endpoint in ['saved_posts'] %} active{% endif %}">
+                    <span class="nav-icon">▣</span><span>Saved</span>
+                </a>
+                <a href="{{ url_for('profile') }}"
+                   class="nav-item{% if request.endpoint in ['profile', 'edit_profile'] %} active{% endif %}">
+                    {% if current_user and current_user.profile_picture %}
+                        <img class="nav-icon nav-profile-picture"
+                             src="{{ url_for('uploaded_profile_picture', filename=current_user.profile_picture) }}"
+                             alt=""
+                             onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                    {% else %}
+                        <span class="nav-icon profile-icon">{{ current_user.username[0]|upper if current_user else "?" }}</span>
+                    {% endif %}
+                    <span>Profile</span>
+                </a>
+            </nav>
+            <form action="{{ url_for('logout') }}" method="POST" class="logout-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="nav-item logout">
+                <span class="nav-icon">↪</span><span>Log out</span>
+                </button>
+            </form>
+        </aside>
+
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="page-flashes" role="status">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <nav class="mobile-navigation" aria-label="Mobile navigation">
+        <a href="{{ url_for('dashboard') }}" aria-label="Home" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">⌂</a>
+        <a href="{{ url_for('search') }}" aria-label="Search" class="{% if request.endpoint == 'search' %}active{% endif %}">⌕</a>
+        <a href="{{ url_for('explore') }}" aria-label="Explore" class="{% if request.endpoint == 'explore' %}active{% endif %}">◇</a>
+        <a href="{{ url_for('reels_feed') }}" aria-label="Reels" class="{% if request.endpoint in ['reels_feed', 'upload_reel'] %}active{% endif %}">▶</a>
+        <a href="{{ url_for('create_post') }}" aria-label="Create" class="{% if request.endpoint == 'create_post' %}active{% endif %}">+</a>
+        <a href="{{ url_for('messages') }}" aria-label="Messages" class="mobile-notif-link {% if request.endpoint in ['messages', 'conversation_detail'] %}active{% endif %}">
+            ✉
+            {% if unread_messages_count and unread_messages_count > 0 %}
+                <span class="mobile-nav-dot"></span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('notifications') }}" aria-label="Notifications" class="mobile-notif-link {% if request.endpoint == 'notifications' %}active{% endif %}">
+            ♡
+            {% if unread_notifications_count and unread_notifications_count > 0 %}
+                <span class="mobile-nav-dot"></span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('profile') }}" aria-label="Profile" class="{% if request.endpoint in ['profile', 'edit_profile'] %}active{% endif %}">
+            {% if current_user and current_user.profile_picture %}
+                <img class="mobile-profile-picture"
+                     src="{{ url_for('uploaded_profile_picture', filename=current_user.profile_picture) }}"
+                     alt=""
+                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+            {% else %}
+                {{ current_user.username[0]|upper if current_user else "?" }}
+            {% endif %}
+        </a>
+    </nav>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

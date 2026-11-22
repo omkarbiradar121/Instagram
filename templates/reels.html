@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Reels · Instagram{% endblock %}
+{% block content %}
+<section class="reels-page">
+    <header class="reels-page-header">
+        <div>
+            <h1>Reels</h1>
+            <p>Short videos from people you follow and the community.</p>
+        </div>
+        <a class="profile-button" href="{{ url_for('upload_reel') }}">Upload Reel</a>
+    </header>
+
+    {% if reels %}
+        <div class="reels-feed">
+            {% for reel in reels %}
+                <article class="reel-card post" id="reel-{{ reel.id }}" data-reel-id="{{ reel.id }}">
+                    <div class="reel-media-column">
+                        <video class="reel-video" controls playsinline muted loop preload="metadata">
+                            <source src="{{ url_for('uploaded_reel_video', filename=reel.video_filename) }}" type="{{ 'video/webm' if reel.video_filename.endswith('.webm') else 'video/mp4' }}">
+                            Your browser does not support video playback.
+                        </video>
+                        <div class="reel-video-actions">
+                            <button type="button" class="reel-play-toggle" aria-label="Play video" aria-pressed="false">Play</button>
+                            <button type="button" class="reel-mute-toggle" aria-label="Unmute video" aria-pressed="false">Unmute</button>
+                        </div>
+                    </div>
+
+                    <div class="reel-details">
+                        <header class="reel-author-row">
+                            <a class="reel-author" href="{{ url_for('profile', username=reel.user.username) }}">
+                                {% if reel.user.profile_picture %}
+                                    <img src="{{ url_for('uploaded_profile_picture', filename=reel.user.profile_picture) }}" alt="">
+                                {% else %}
+                                    <span>{{ reel.user.username[0]|upper }}</span>
+                                {% endif %}
+                                <strong>{{ reel.user.username }}</strong>
+                            </a>
+                            {% if reel.user_id != user.id %}
+                                <button class="follow-button profile-follow-button{% if reel.user_id in following_ids %} following{% endif %}"
+                                        type="button" data-user-id="{{ reel.user_id }}"
+                                        data-follow-url="{{ url_for('follow_user', user_id=reel.user_id) }}"
+                                        data-unfollow-url="{{ url_for('unfollow_user', user_id=reel.user_id) }}"
+                                        data-csrf-token="{{ csrf_token() }}"
+                                        aria-pressed="{{ 'true' if reel.user_id in following_ids else 'false' }}">
+                                    {{ 'Following' if reel.user_id in following_ids else 'Follow' }}
+                                </button>
+                            {% endif %}
+                        </header>
+
+                        {% if reel.caption %}<p class="reel-caption">{{ reel.caption }}</p>{% endif %}
+                        <time class="reel-created-at" datetime="{{ reel.created_at.isoformat() }}">{{ reel.created_at.strftime('%b %d, %Y · %I:%M %p') }}</time>
+
+                        <div class="reel-interactions">
+                            <button type="button" class="like-button{% if reel.id in liked_reel_ids %} liked{% endif %}"
+                                    data-like-url="{{ url_for('like_reel', reel_id=reel.id) }}"
+                                    data-unlike-url="{{ url_for('unlike_reel', reel_id=reel.id) }}"
+                                    data-like-label="Reel"
+                                    data-csrf-token="{{ csrf_token() }}"
+                                    aria-label="{{ 'Unlike' if reel.id in liked_reel_ids else 'Like' }} Reel"
+                                    aria-pressed="{{ 'true' if reel.id in liked_reel_ids else 'false' }}">
+                                {{ '♥' if reel.id in liked_reel_ids else '♡' }}
+                            </button>
+                            <span class="likes-count" data-post-url="{{ url_for('like_reel', reel_id=reel.id) }}"><strong>{{ like_counts.get(reel.id, 0) }} {{ 'like' if like_counts.get(reel.id, 0) == 1 else 'likes' }}</strong></span>
+                            <button type="button" class="comment-button" aria-label="Show comments" aria-expanded="false">Comments</button>
+                            <button type="button" class="save-button{% if reel.id in saved_reel_ids %} saved{% endif %}"
+                                    data-save-url="{{ url_for('toggle_save_reel', reel_id=reel.id) }}"
+                                    data-post-id="{{ reel.id }}" data-csrf-token="{{ csrf_token() }}"
+                                    aria-label="{{ 'Remove saved Reel' if reel.id in saved_reel_ids else 'Save Reel' }}"
+                                    aria-pressed="{{ 'true' if reel.id in saved_reel_ids else 'false' }}">
+                                {{ '▣' if reel.id in saved_reel_ids else '♧' }}
+                            </button>
+                            <button type="button" class="comment-count" aria-label="Toggle comments">
+                                <strong>{{ comment_counts.get(reel.id, 0) }} {{ 'comment' if comment_counts.get(reel.id, 0) == 1 else 'comments' }}</strong>
+                            </button>
+                        </div>
+
+                        {% if reel.user_id == user.id %}
+                            <form method="POST" action="{{ url_for('delete_reel', reel_id=reel.id) }}" onsubmit="return confirm('Delete this Reel?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="delete-reel-button">Delete Reel</button>
+                            </form>
+                        {% endif %}
+
+                        <section class="comments-section reel-comments-section" aria-label="Reel comments">
+                            <div class="comments-list">
+                                {% for comment in comments_by_reel.get(reel.id, []) %}
+                                    <div class="comment-item" data-comment-id="{{ comment.id }}">
+                                        <p><a class="comment-username" href="{{ url_for('profile', username=comment.user.username) }}"><strong>{{ comment.user.username }}</strong></a> <span>{{ comment.content }}</span></p>
+                                        {% if comment.user_id == user.id %}
+                                            <button type="button" class="delete-comment-button"
+                                                    data-delete-url="{{ url_for('delete_reel_comment', comment_id=comment.id) }}"
+                                                    data-csrf-token="{{ csrf_token() }}" aria-label="Delete your comment">×</button>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <form class="comment-form" data-comment-url="{{ url_for('add_reel_comment', reel_id=reel.id) }}" data-csrf-token="{{ csrf_token() }}">
+                                <input type="text" name="content" maxlength="500" placeholder="Add a comment" aria-label="Add a comment" required>
+                                <button type="submit">Post</button>
+                            </form>
+                        </section>
+
+                        <nav class="reel-navigation" aria-label="Reel navigation">
+                            <button type="button" data-reel-nav="previous"{% if loop.first %} disabled{% endif %}>Previous</button>
+                            <span>{{ loop.index }} / {{ loop.length }}</span>
+                            <button type="button" data-reel-nav="next"{% if loop.last %} disabled{% endif %}>Next</button>
+                        </nav>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="reels-empty-state">
+            <span aria-hidden="true">▶</span>
+            <h2>No Reels yet</h2>
+            <p>Upload a short video to start the Reels feed.</p>
+            <a class="profile-button" href="{{ url_for('upload_reel') }}">Upload your first Reel</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

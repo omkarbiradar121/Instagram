@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Create new post · Instagram{% endblock %}
+{% block content %}
+<section class="create-post-page">
+  <header class="edit-profile-heading"><a class="back-link" href="{{ url_for('dashboard') }}" aria-label="Back">‹</a><h1>Create new post</h1></header>
+  <form class="create-post-form" method="POST" enctype="multipart/form-data" action="{{ url_for('create_post') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="post-upload-panel">
+      <div class="post-image-preview" id="post-image-preview"><span>Choose a photo to get started</span></div>
+      <label class="profile-button select-image-button" for="post-image">Select from computer</label>
+      <input class="picture-input" id="post-image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+      <button class="remove-image-button" id="remove-post-image" type="button" hidden>Remove image</button>
+      <small>JPG, JPEG, PNG or WEBP · up to 5 MB</small>
+    </div>
+    <div class="create-post-caption">
+      <label for="post-caption">Caption</label>
+      <textarea id="post-caption" name="caption" maxlength="2200" rows="8">{{ caption }}</textarea>
+      <div class="caption-counter"><span id="caption-count">{{ caption|length }}</span>/2,200</div>
+      <div class="create-post-actions"><a href="{{ url_for('dashboard') }}" class="cancel-profile-button">Cancel</a><button class="profile-button save-profile-button" type="submit">Share</button></div>
+    </div>
+  </form>
+</section>
+{% endblock %}

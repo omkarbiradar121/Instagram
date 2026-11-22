@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications • Instagram{% endblock %}
+
+{% block content %}
+<section class="notifications-page">
+    <div class="notifications-header">
+        <h1>Notifications</h1>
+        {% if notifications %}
+            <form method="POST" action="{{ url_for('mark_all_notifications_read') }}" class="mark-all-read-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="mark-read-button">Mark all as read</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if notifications %}
+        <div class="notifications-list">
+            {% for n in notifications %}
+            <div class="notification-item{% if not n.is_read %} unread{% endif %}" data-notification-id="{{ n.id }}">
+                <a class="notification-avatar-link" href="{{ url_for('profile', username=n.sender.username) }}">
+                    {% if n.sender.profile_picture %}
+                        <img class="notification-avatar"
+                             src="{{ url_for('uploaded_profile_picture', filename=n.sender.profile_picture) }}"
+                             alt="{{ n.sender.username }}'s avatar"
+                             onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                    {% else %}
+                        <span class="notification-avatar-initial">{{ n.sender.username[0]|upper }}</span>
+                    {% endif %}
+                </a>
+
+                <div class="notification-text">
+                    <p>
+                        <a href="{{ url_for('profile', username=n.sender.username) }}" class="notification-username">
+                            <strong>{{ n.sender.username }}</strong>
+                        </a>
+                        {% if n.notification_type == 'like' %}
+                            liked your post.
+                        {% elif n.notification_type == 'comment' %}
+                            commented: <span class="notif-content">"{{ n.content }}"</span> on your post.
+                        {% elif n.notification_type == 'follow' %}
+                            started following you.
+                        {% else %}
+                            interacted with your profile.
+                        {% endif %}
+                    </p>
+                    <span class="notification-time">{{ n.created_at.strftime('%b %d, %Y · %I:%M %p') }}</span>
+                </div>
+
+                <div class="notification-action">
+                    {% if n.post %}
+                        <a href="{{ url_for('post_detail', post_id=n.post.id) }}" class="notification-post-thumb-link">
+                            <img class="notification-post-thumb"
+                                 src="{{ url_for('uploaded_post_image', filename=n.post.image_filename) }}"
+                                 alt="Post thumbnail"
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-post.svg') }}';">
+                        </a>
+                    {% elif n.notification_type == 'follow' %}
+                        {% if n.sender.id != user.id %}
+                            <button class="follow-button profile-follow-button{% if following_ids is defined and n.sender.id in following_ids %} following{% endif %}"
+                                    type="button"
+                                    data-user-id="{{ n.sender.id }}"
+                                    data-follow-url="{{ url_for('follow_user', user_id=n.sender.id) }}"
+                                    data-unfollow-url="{{ url_for('unfollow_user', user_id=n.sender.id) }}"
+                                    data-csrf-token="{{ csrf_token() }}"
+                                    aria-pressed="{{ 'true' if (following_ids is defined and n.sender.id in following_ids) else 'false' }}">
+                                {{ "Following" if (following_ids is defined and n.sender.id in following_ids) else "Follow" }}
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="notifications-empty">
+            <div class="notifications-empty-circle">
+                <span class="empty-icon">♡</span>
+            </div>
+            <h2>No notifications yet</h2>
+            <p>When people like or comment on your posts, or follow you, you'll see them here.</p>
+            <a class="profile-button" href="{{ url_for('explore') }}">Explore posts</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

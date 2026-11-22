@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if other_user %}
+    {{ other_user.username }} • Direct • Instagram
+  {% else %}
+    Inbox • Direct • Instagram
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="messages-page-wrapper">
+  <div class="messages-container{% if active_conversation %} mobile-show-chat{% endif %}">
+    
+    <!-- LEFT PANE: CONVERSATION LIST -->
+    <aside class="conversations-sidebar">
+      <div class="conversations-header">
+        <h2 class="conversations-username">{{ user.username }}</h2>
+        <button type="button" class="new-conversation-button open-new-modal" title="New message" aria-label="New message">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="conversations-list-wrap">
+        <div class="conversations-list-label">Messages</div>
+        {% if conversations %}
+          <div class="conversations-list">
+            {% for conv in conversations %}
+              {% set partner = conv.get_other_user(user.id) %}
+              {% set last_msg = conv.get_last_message() %}
+              {% set unread_count = conv.get_unread_count(user.id) %}
+              <a href="{{ url_for('conversation_detail', conversation_id=conv.id) }}"
+                 class="conversation-item{% if active_conversation and active_conversation.id == conv.id %} active{% endif %}{% if unread_count > 0 %} has-unread{% endif %}"
+                 data-conv-id="{{ conv.id }}">
+                <div class="conv-avatar-wrap">
+                  {% if partner.profile_picture %}
+                    <img class="conv-avatar"
+                         src="{{ url_for('uploaded_profile_picture', filename=partner.profile_picture) }}"
+                         alt="{{ partner.username }}'s avatar"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                  {% else %}
+                    <span class="conv-avatar-initial">{{ partner.username[0]|upper }}</span>
+                  {% endif %}
+                </div>
+                <div class="conv-info">
+                  <div class="conv-top-row">
+                    <span class="conv-name">{{ partner.username }}</span>
+                    {% if last_msg %}
+                      <span class="conv-time">{{ last_msg.created_at.strftime('%b %d') }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="conv-preview-row">
+                    <p class="conv-preview-text">
+                      {% if last_msg %}
+                        {{ 'You: ' if last_msg.sender_id == user.id else '' }}{{ last_msg.content }}
+                      {% else %}
+                        Started a chat
+                      {% endif %}
+                    </p>
+                    {% if unread_count > 0 %}
+                      <span class="conv-unread-badge">{{ unread_count }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="no-conversations-state">
+            <p>No messages yet</p>
+            <button type="button" class="profile-button open-new-modal">+ Send message</button>
+          </div>
+        {% endif %}
+      </div>
+    </aside>
+
+    <!-- RIGHT PANE: ACTIVE CHAT OR EMPTY INBOX -->
+    <main class="chat-main-pane">
+      {% if active_conversation and other_user %}
+        <div class="chat-box" data-conversation-id="{{ active_conversation.id }}" data-current-user-id="{{ user.id }}">
+          
+          <!-- Chat Header -->
+          <div class="chat-header">
+            <a href="{{ url_for('messages') }}" class="chat-back-btn" aria-label="Back to messages">‹</a>
+            <a href="{{ url_for('profile', username=other_user.username) }}" class="chat-header-user">
+              <div class="chat-header-avatar-wrap">
+                {% if other_user.profile_picture %}
+                  <img class="chat-header-avatar"
+                       src="{{ url_for('uploaded_profile_picture', filename=other_user.profile_picture) }}"
+                       alt="{{ other_user.username }}"
+                       onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                {% else %}
+                  <span class="conv-avatar-initial">{{ other_user.username[0]|upper }}</span>
+                {% endif %}
+              </div>
+              <div class="chat-header-meta">
+                <span class="chat-header-username">{{ other_user.username }}</span>
+                <span class="chat-header-subtext">{{ other_user.display_name or 'View profile' }}</span>
+              </div>
+            </a>
+            <div class="chat-header-actions">
+              <a href="{{ url_for('profile', username=other_user.username) }}" class="chat-view-profile-link" title="Profile">ⓘ</a>
+            </div>
+          </div>
+
+          <!-- Chat Scrollable Message History -->
+          <div class="chat-messages-area" id="chat-messages-area">
+            <div class="chat-intro-card">
+              <div class="chat-intro-avatar">
+                {% if other_user.profile_picture %}
+                  <img src="{{ url_for('uploaded_profile_picture', filename=other_user.profile_picture) }}"
+                       alt="{{ other_user.username }}"
+                       onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                {% else %}
+                  <span>{{ other_user.username[0]|upper }}</span>
+                {% endif %}
+              </div>
+              <h3>{{ other_user.username }}</h3>
+              <p>{{ other_user.display_name or '' }}</p>
+              <a href="{{ url_for('profile', username=other_user.username) }}" class="profile-button view-profile-pill">View profile</a>
+            </div>
+
+            {% for msg in active_messages %}
+              <div class="message-row{% if msg.sender_id == user.id %} sent{% else %} received{% endif %}" data-message-id="{{ msg.id }}">
+                <div class="message-bubble" title="{{ msg.created_at.strftime('%b %d, %Y · %I:%M %p') }}">
+                  <p class="message-content">{{ msg.content }}</p>
+                  <span class="message-timestamp">{{ msg.created_at.strftime('%I:%M %p') }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Message Input Bar -->
+          <form class="chat-input-bar" id="chat-message-form"
+                action="{{ url_for('send_message', conversation_id=active_conversation.id) }}"
+                method="POST"
+                data-send-url="{{ url_for('send_message', conversation_id=active_conversation.id) }}"
+                data-csrf-token="{{ csrf_token() }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text"
+                   name="content"
+                   id="chat-input-field"
+                   class="chat-input-field"
+                   placeholder="Message..."
+                   autocomplete="off"
+                   maxlength="2000"
+                   required
+                   autofocus>
+            <button type="submit" id="chat-send-button" class="chat-send-btn" disabled>Send</button>
+          </form>
+
+        </div>
+      {% else %}
+        <!-- Empty Direct State -->
+        <div class="direct-empty-state">
+          <div class="direct-empty-circle">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2L11 13"></path>
+              <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+            </svg>
+          </div>
+          <h2>Your messages</h2>
+          <p>Send private photos and messages to a friend.</p>
+          <button type="button" class="profile-button open-new-modal">Send message</button>
+        </div>
+      {% endif %}
+    </main>
+
+  </div>
+</div>
+
+<!-- NEW MESSAGE MODAL -->
+<div class="modal-backdrop" id="new-message-modal" aria-hidden="true">
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+    <div class="modal-header">
+      <h3 id="modal-title">New message</h3>
+      <button type="button" class="modal-close-btn" id="close-modal-btn" aria-label="Close modal">×</button>
+    </div>
+    <div class="modal-search-row">
+      <label for="modal-user-search">To:</label>
+      <input type="text" id="modal-user-search" placeholder="Search people..." autocomplete="off">
+    </div>
+    <div class="modal-users-list" id="modal-users-list">
+      {% for u in available_users %}
+        <form action="{{ url_for('start_conversation_with_user', username=u.username) }}"
+           method="POST"
+           class="modal-user-item"
+           aria-label="Start a conversation with {{ u.username }}"
+           data-username="{{ u.username|lower }}"
+           data-name="{{ (u.display_name or '')|lower }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="modal-user-avatar">
+            {% if u.profile_picture %}
+              <img src="{{ url_for('uploaded_profile_picture', filename=u.profile_picture) }}"
+                   alt="{{ u.username }}"
+                   onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+            {% else %}
+              <span>{{ u.username[0]|upper }}</span>
+            {% endif %}
+          </div>
+          <div class="modal-user-info">
+            <strong>{{ u.username }}</strong>
+            <small>{{ u.display_name or 'Instagram user' }}</small>
+          </div>
+          <span class="modal-chat-action">Chat</span>
+        </form>
+      {% else %}
+        <p class="modal-no-users">No other users found.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

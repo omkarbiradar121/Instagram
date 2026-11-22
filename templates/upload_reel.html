@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Upload Reel · Instagram{% endblock %}
+{% block content %}
+<section class="upload-reel-page">
+    <header class="edit-profile-heading">
+        <a class="back-link" href="{{ url_for('reels_feed') }}" aria-label="Back to Reels">‹</a>
+        <h1>Upload a Reel</h1>
+    </header>
+    <form class="upload-reel-form" action="{{ url_for('upload_reel') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="reel-file-picker" for="reel-video-input">Choose an MP4 or WebM video</label>
+        <input id="reel-video-input" type="file" name="video" accept=".mp4,.webm,video/mp4,video/webm" required>
+        <video id="reel-video-preview" class="reel-upload-preview" controls muted playsinline hidden></video>
+        <p class="reel-upload-hint">MP4 or WebM · up to 100 MB</p>
+        <label for="reel-caption">Caption</label>
+        <textarea id="reel-caption" name="caption" maxlength="2200" rows="4">{{ caption }}</textarea>
+        <div class="reel-upload-actions">
+            <a class="cancel-profile-button" href="{{ url_for('reels_feed') }}">Cancel</a>
+            <button class="profile-button" type="submit">Share Reel</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

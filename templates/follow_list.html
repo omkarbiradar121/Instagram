@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ list_type|capitalize }} · {{ profile_user.username }}{% endblock %}
+{% block content %}
+<section class="follow-list-page">
+    <header class="edit-profile-heading">
+        <a class="back-link" href="{{ url_for('profile', username=profile_user.username) }}" aria-label="Back to profile">‹</a>
+        <h1>{{ list_type|capitalize }}</h1>
+    </header>
+    <p class="follow-list-subtitle">{{ profile_user.username }}'s {{ list_type }}</p>
+    <div class="follow-list">
+        {% for account in accounts %}
+        <div class="follow-list-item">
+            <a class="follow-list-account" href="{{ url_for('profile', username=account.username) }}">
+                {% if account.profile_picture %}
+                    <img src="{{ url_for('uploaded_profile_picture', filename=account.profile_picture) }}"
+                         alt="{{ account.username }}'s avatar"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/default-avatar.svg') }}" alt="Default avatar">
+                {% endif %}
+                <span>
+                    <strong>{{ account.username }}</strong>
+                    <small>{{ account.display_name or account.username }}</small>
+                </span>
+            </a>
+            {% if current_user and account.id != current_user.id %}
+            <button class="follow-button profile-follow-button{% if following_ids is defined and account.id in following_ids %} following{% endif %}"
+                    type="button"
+                    data-user-id="{{ account.id }}"
+                    data-follow-url="{{ url_for('follow_user', user_id=account.id) }}"
+                    data-unfollow-url="{{ url_for('unfollow_user', user_id=account.id) }}"
+                    data-csrf-token="{{ csrf_token() }}"
+                    aria-pressed="{{ 'true' if (following_ids is defined and account.id in following_ids) else 'false' }}">
+                {{ "Following" if (following_ids is defined and account.id in following_ids) else "Follow" }}
+            </button>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="follow-list-empty">No {{ list_type }} yet.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

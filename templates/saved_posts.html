@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Posts • Instagram{% endblock %}
+
+{% block content %}
+<section class="saved-page">
+    <div class="saved-header">
+        <div class="saved-header-left">
+            <h1>Saved</h1>
+            <p class="saved-subtitle">Only you can see what you've saved</p>
+        </div>
+        <a href="{{ url_for('explore') }}" class="profile-button view-profile-button">Explore more posts</a>
+    </div>
+
+    <nav class="saved-type-tabs" aria-label="Saved content type">
+        <a href="{{ url_for('saved_posts', type='posts') }}" class="{% if saved_type == 'posts' %}active{% endif %}">Saved Posts</a>
+        <a href="{{ url_for('saved_posts', type='reels') }}" class="{% if saved_type == 'reels' %}active{% endif %}">Saved Reels</a>
+    </nav>
+
+    {% if saved_type == 'reels' %}
+        {% if reels %}
+            <div class="saved-posts-grid saved-reels-grid">
+                {% for reel in reels %}
+                    <article class="saved-post-card saved-reel-card" data-saved-reel-id="{{ reel.id }}">
+                        <a href="{{ url_for('reels_feed') }}#reel-{{ reel.id }}" class="saved-media-link" aria-label="Play saved Reel by {{ reel.user.username }}">
+                            <video muted playsinline preload="metadata">
+                                <source src="{{ url_for('uploaded_reel_video', filename=reel.video_filename) }}" type="{{ 'video/webm' if reel.video_filename.endswith('.webm') else 'video/mp4' }}">
+                            </video>
+                            <span class="saved-reel-play" aria-hidden="true">▶</span>
+                            <div class="saved-overlay">
+                                <div class="saved-overlay-stats">
+                                    <span>{{ reel_like_counts.get(reel.id, 0) }} likes</span>
+                                    <span>{{ reel_comment_counts.get(reel.id, 0) }} comments</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="saved-card-footer">
+                            <a class="saved-author" href="{{ url_for('profile', username=reel.user.username, tab='reels') }}">
+                                <span class="saved-author-name">{{ reel.user.username }}</span>
+                            </a>
+                            <button type="button" class="save-button saved"
+                                    data-save-url="{{ url_for('toggle_save_reel', reel_id=reel.id) }}"
+                                    data-post-id="{{ reel.id }}" data-csrf-token="{{ csrf_token() }}"
+                                    aria-label="Remove saved Reel" aria-pressed="true" title="Remove saved Reel">▣</button>
+                        </div>
+                        {% if reel.caption %}<p class="saved-reel-caption">{{ reel.caption }}</p>{% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="saved-empty"><h2>No saved Reels</h2><p>Reels you save will appear here.</p><a class="profile-button" href="{{ url_for('reels_feed') }}">Browse Reels</a></div>
+        {% endif %}
+    {% elif posts %}
+        <div class="saved-posts-grid">
+            {% for post in posts %}
+            <article class="saved-post-card" data-post-id="{{ post.id }}">
+                <a href="{{ url_for('post_detail', post_id=post.id) }}" class="saved-media-link" aria-label="View saved post by {{ post.user.username }}">
+                    <img src="{{ url_for('uploaded_post_image', filename=post.image_filename) }}"
+                         alt="Saved post by {{ post.user.username }}"
+                         loading="lazy"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-post.svg') }}';">
+                    <div class="saved-overlay">
+                        <div class="saved-overlay-stats">
+                            <span><span class="overlay-icon">♥</span> {{ like_counts.get(post.id, 0) }}</span>
+                            <span><span class="overlay-icon">💬</span> {{ comment_counts.get(post.id, 0) }}</span>
+                        </div>
+                    </div>
+                </a>
+
+                <div class="saved-card-footer">
+                    <a class="saved-author" href="{{ url_for('profile', username=post.user.username) }}">
+                        {% if post.user.profile_picture %}
+                            <img class="saved-author-avatar"
+                                 src="{{ url_for('uploaded_profile_picture', filename=post.user.profile_picture) }}"
+                                 alt="{{ post.user.username }}'s avatar"
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                        {% else %}
+                            <span class="saved-author-initial">{{ post.user.username[0]|upper }}</span>
+                        {% endif %}
+                        <span class="saved-author-name">{{ post.user.username }}</span>
+                    </a>
+
+                    <button type="button"
+                            class="save-button saved"
+                            data-save-url="{{ url_for('toggle_save_post', post_id=post.id) }}"
+                            data-post-id="{{ post.id }}"
+                            data-csrf-token="{{ csrf_token() }}"
+                            aria-label="Remove saved post"
+                            aria-pressed="true"
+                            title="Remove from saved">
+                        ▣
+                    </button>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="saved-empty">
+            <div class="saved-empty-circle">
+                <span class="empty-icon">▣</span>
+            </div>
+            <h2>Save photos and videos</h2>
+            <p>Save photos and videos that you want to see again. No one is notified, and only you can see what you've saved.</p>
+            <a class="profile-button" href="{{ url_for('explore') }}">Find posts to save</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

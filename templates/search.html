@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Search • Instagram{% endblock %}
+
+{% block content %}
+<section class="search-page">
+    <div class="search-header">
+        <h1>Search</h1>
+        <form method="GET" action="{{ url_for('search') }}" class="search-form">
+            <span class="nav-icon search-input-icon">⌕</span>
+            <input type="text"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Search by username or name…"
+                   autocomplete="off"
+                   autofocus>
+            {% if query %}
+                <a class="clear-search-link" href="{{ url_for('search') }}" aria-label="Clear search">×</a>
+            {% endif %}
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <div class="search-results">
+        {% if users %}
+            {% for u in users %}
+            <div class="search-user-card">
+                <div class="search-user-info">
+                    <a class="search-user-avatar-link" href="{{ url_for('profile', username=u.username) }}">
+                        {% if u.profile_picture %}
+                            <img class="search-user-avatar"
+                                 src="{{ url_for('uploaded_profile_picture', filename=u.profile_picture) }}"
+                                 alt="{{ u.username }}'s profile picture"
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                        {% else %}
+                            <img class="search-user-avatar"
+                                 src="{{ url_for('static', filename='images/default-avatar.svg') }}"
+                                 alt="Default profile picture">
+                        {% endif %}
+                    </a>
+                    <div class="search-user-details">
+                        <a href="{{ url_for('profile', username=u.username) }}">
+                            <strong>{{ u.username }}</strong>
+                        </a>
+                        <small>{{ u.display_name or u.bio or 'Instagram user' }}</small>
+                    </div>
+                </div>
+
+                <div class="search-user-actions">
+                    <a class="profile-button view-profile-button" href="{{ url_for('profile', username=u.username) }}">
+                        View Profile
+                    </a>
+                    {% if u.id != user.id %}
+                        <button class="follow-button profile-follow-button{% if u.id in following_ids %} following{% endif %}"
+                                type="button"
+                                data-user-id="{{ u.id }}"
+                                data-follow-url="{{ url_for('follow_user', user_id=u.id) }}"
+                                data-unfollow-url="{{ url_for('unfollow_user', user_id=u.id) }}"
+                                data-csrf-token="{{ csrf_token() }}"
+                                aria-pressed="{{ 'true' if u.id in following_ids else 'false' }}">
+                            {{ "Following" if u.id in following_ids else "Follow" }}
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="search-empty">
+                {% if query %}
+                    <h3>No results found</h3>
+                    <p>No users matching "<strong>{{ query }}</strong>". Try searching for another username.</p>
+                {% else %}
+                    <h3>No users to display</h3>
+                    <p>There are no other registered accounts yet.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

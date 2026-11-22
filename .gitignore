@@ -1,0 +1,57 @@
+.env
+.env.*
+!.env.example
+
+# Uploaded user media and local instance data
+uploads/
+instance/
+
+# Local virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+
+# Local database files and backups
+*.db
+*.sqlite
+*.sqlite3
+*.db-*
+*.sqlite-*
+*.sqlite3-*
+*.mdb
+*.accdb
+*.dump
+*.sql.gz
+*.bak
+
+# Environment secrets, credentials, and private keys
+secrets/
+credentials/
+secrets.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating system and local tool artifacts
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.log
+.coverage
+htmlcov/

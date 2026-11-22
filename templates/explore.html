@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Explore • Instagram{% endblock %}
+
+{% block content %}
+<section class="explore-page">
+    <div class="explore-header">
+        <h1>Explore</h1>
+        <p class="explore-subtitle">Discover photos and moments from across the community</p>
+    </div>
+
+    {% if posts %}
+        <div class="explore-grid">
+            {% for post in posts %}
+            <article class="explore-card">
+                <a href="{{ url_for('post_detail', post_id=post.id) }}" class="explore-media-link" aria-label="View post by {{ post.user.username }}">
+                    <img src="{{ url_for('uploaded_post_image', filename=post.image_filename) }}"
+                         alt="Post by {{ post.user.username }}"
+                         loading="lazy"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-post.svg') }}';">
+                    <div class="explore-overlay">
+                        <div class="explore-overlay-stats">
+                            <span><span class="overlay-icon">♥</span> {{ like_counts.get(post.id, 0) }}</span>
+                            <span><span class="overlay-icon">💬</span> {{ comment_counts.get(post.id, 0) }}</span>
+                        </div>
+                    </div>
+                </a>
+                <div class="explore-card-footer">
+                    <a class="explore-author" href="{{ url_for('profile', username=post.user.username) }}">
+                        {% if post.user.profile_picture %}
+                            <img class="explore-author-avatar"
+                                 src="{{ url_for('uploaded_profile_picture', filename=post.user.profile_picture) }}"
+                                 alt="{{ post.user.username }}'s avatar"
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+                        {% else %}
+                            <span class="explore-author-initial">{{ post.user.username[0]|upper }}</span>
+                        {% endif %}
+                        <span class="explore-author-name">{{ post.user.username }}</span>
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="explore-empty">
+            <span class="empty-icon">◇</span>
+            <h2>No posts to explore yet</h2>
+            <p>When users share photos, they will appear here for everyone to discover.</p>
+            <a class="profile-button" href="{{ url_for('create_post') }}">+ Share the first post</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

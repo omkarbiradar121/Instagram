@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Post by {{ post.user.username }} • Instagram{% endblock %}
+
+{% block content %}
+<div class="post-detail-container">
+  <div class="post-detail-header-nav">
+    <a href="javascript:history.back()" class="post-back-link">← Back</a>
+    <a href="{{ url_for('explore') }}" class="post-explore-link">Explore more posts</a>
+  </div>
+
+  <article class="post post-detail-card" data-post-id="{{ post.id }}">
+    <div class="post-header">
+      <div class="post-user">
+        <a class="post-avatar" href="{{ url_for('profile', username=post.user.username) }}">
+          {% if post.user.profile_picture %}
+            <img src="{{ url_for('uploaded_profile_picture', filename=post.user.profile_picture) }}"
+                 alt="{{ post.user.username }}'s avatar"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.svg') }}';">
+          {% else %}
+            <img src="{{ url_for('static', filename='images/default-avatar.svg') }}" alt="Default avatar">
+          {% endif %}
+        </a>
+        <div class="post-user-details">
+          <div class="post-user-top">
+            <a href="{{ url_for('profile', username=post.user.username) }}"><strong>{{ post.user.username }}</strong></a>
+            {% if post.user_id != user.id %}
+              <span class="header-dot">•</span>
+              <button class="follow-button post-header-follow-button{% if following_ids is defined and post.user_id in following_ids %} following{% endif %}"
+                      type="button"
+                      data-user-id="{{ post.user_id }}"
+                      data-follow-url="{{ url_for('follow_user', user_id=post.user_id) }}"
+                      data-unfollow-url="{{ url_for('unfollow_user', user_id=post.user_id) }}"
+                      data-csrf-token="{{ csrf_token() }}"
+                      aria-pressed="{{ 'true' if (following_ids is defined and post.user_id in following_ids) else 'false' }}">
+                {{ "Following" if (following_ids is defined and post.user_id in following_ids) else "Follow" }}
+              </button>
+            {% endif %}
+          </div>
+          <span>{{ post.created_at.strftime('%b %d, %Y · %I:%M %p') }}</span>
+        </div>
+      </div>
+      {% if post.user_id == user.id %}
+        <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" onsubmit="return confirm('Delete this post?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="more-options delete-post" type="submit" aria-label="Delete post">···</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <img class="feed-image" src="{{ url_for('uploaded_post_image', filename=post.image_filename) }}" alt="Post by {{ post.user.username }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-post.svg') }}';">
+
+    <div class="post-actions">
+      <div class="post-action-buttons">
+        <button type="button"
+                class="like-button{% if post.id in liked_post_ids %} liked{% endif %}"
+                data-like-url="{{ url_for('toggle_like', post_id=post.id) }}"
+                data-unlike-url="{{ url_for('unlike_post', post_id=post.id) }}"
+                data-csrf-token="{{ csrf_token() }}"
+                aria-label="{% if post.id in liked_post_ids %}Unlike{% else %}Like{% endif %} post"
+                aria-pressed="{{ 'true' if post.id in liked_post_ids else 'false' }}">{{ '♥' if post.id in liked_post_ids else '♡' }}</button>
+        <button type="button"
+                class="comment-button"
+                aria-label="Comment"
+                aria-expanded="true"
+                title="Comment">
+          <svg class="comment-icon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2"/>
+          </svg>
+        </button>
+        <button type="button" class="share-button" aria-label="Share post">➤</button>
+      </div>
+      <button type="button"
+              class="save-button{% if saved_post_ids is defined and post.id in saved_post_ids %} saved{% endif %}"
+              data-save-url="{{ url_for('toggle_save_post', post_id=post.id) }}"
+              data-post-id="{{ post.id }}"
+              data-csrf-token="{{ csrf_token() }}"
+              aria-label="{% if saved_post_ids is defined and post.id in saved_post_ids %}Remove saved post{% else %}Save post{% endif %}"
+              aria-pressed="{{ 'true' if (saved_post_ids is defined and post.id in saved_post_ids) else 'false' }}">
+        {{ '▣' if (saved_post_ids is defined and post.id in saved_post_ids) else '♧' }}
+      </button>
+    </div>
+
+    <p class="likes-count" data-post-url="{{ url_for('toggle_like', post_id=post.id) }}" aria-live="polite">
+      <strong>{{ like_counts.get(post.id, 0) }} {{ 'like' if like_counts.get(post.id, 0) == 1 else 'likes' }}</strong>
+    </p>
+
+    {% if post.caption %}
+      <p class="post-caption">
+        <a class="caption-username" href="{{ url_for('profile', username=post.user.username) }}"><strong>{{ post.user.username }}</strong></a>
+        <span>{{ post.caption }}</span>
+      </p>
+    {% endif %}
+
+    <p class="comment-count" role="button" tabindex="0" aria-expanded="false" title="Click to show or hide comments" aria-live="polite">
+      <strong>{{ comment_counts.get(post.id, 0) }} {{ 'comment' if comment_counts.get(post.id, 0) == 1 else 'comments' }}</strong>
+    </p>
+
+    <div class="comments-section open" id="comments-section-{{ post.id }}">
+      <div class="comments-list">
+        {% for comment in comments_by_post.get(post.id, []) %}
+          <div class="comment-item" data-comment-id="{{ comment.id }}">
+            <p>
+              <a class="comment-username" href="{{ url_for('profile', username=comment.user.username) }}"><strong>{{ comment.user.username }}</strong></a>
+              <span>{{ comment.content }}</span>
+            </p>
+            {% if comment.user_id == user.id %}
+              <button type="button"
+                      class="delete-comment-button"
+                      data-delete-url="{{ url_for('delete_comment', comment_id=comment.id) }}"
+                      data-csrf-token="{{ csrf_token() }}"
+                      aria-label="Delete your comment">×</button>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <form class="comment-form" data-comment-url="{{ url_for('add_comment', post_id=post.id) }}" data-csrf-token="{{ csrf_token() }}">
+        <input type="text" name="content" maxlength="500" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" required>
+        <button type="submit">Post</button>
+      </form>
+    </div>
+  </article>
+</div>
+{% endblock %}

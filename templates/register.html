@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sign Up • Instagram Clone</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <main class="auth-container">
+
+        <!-- Registration form card -->
+        <section class="auth-card register-card">
+
+            <h1 class="brand-name">Instagram</h1>
+
+            <p class="auth-subtitle">
+                Sign up to see photos and videos from your friends.
+            </p>
+
+            <!-- Display Flask messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration form -->
+            <form action="{{ url_for('register') }}" method="POST">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Choose a username"
+                        autocomplete="username"
+                        maxlength="80"
+                        pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,78}[A-Za-z0-9]|[A-Za-z0-9]"
+                        title="Use letters, numbers, periods, underscores, or hyphens."
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email address</label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        autocomplete="email"
+                        maxlength="120"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Create a password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+
+                    <small class="input-hint">
+                        Password must contain between 8 and 128 characters.
+                    </small>
+                </div>
+
+                <button type="submit" class="auth-button">
+                    Sign Up
+                </button>
+
+            </form>
+
+            <p class="terms-text">
+                By signing up, you agree to our Terms and Privacy Policy.
+            </p>
+
+        </section>
+
+        <!-- Link to login -->
+        <section class="auth-card secondary-card">
+
+            <p>
+                Already have an account?
+                <a href="{{ url_for('login') }}">Log in</a>
+            </p>
+
+        </section>
+
+        <p class="copyright">
+            Instagram Clone © 2026
+        </p>
+
+    </main>
+
+</body>
+</html>
